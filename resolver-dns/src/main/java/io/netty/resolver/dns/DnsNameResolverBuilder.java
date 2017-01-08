@@ -40,6 +40,7 @@ public final class DnsNameResolverBuilder {
     private ChannelFactory<? extends DatagramChannel> channelFactory;
     private DnsServerAddresses nameServerAddresses = DnsServerAddresses.defaultAddresses();
     private DnsCache resolveCache;
+    private DnsCache nsCache;
     private Integer minTtl;
     private Integer maxTtl;
     private Integer negativeTtl;
@@ -105,6 +106,17 @@ public final class DnsNameResolverBuilder {
      */
     public DnsNameResolverBuilder resolveCache(DnsCache resolveCache) {
         this.resolveCache  = resolveCache;
+        return this;
+    }
+
+    /**
+     * Sets the cache for authority NS servers
+     *
+     * @param nsCache the authority NS servers cache
+     * @return {@code this}
+     */
+    public DnsNameResolverBuilder nsCache(DnsCache nsCache) {
+        this.nsCache  = nsCache;
         return this;
     }
 
@@ -330,25 +342,32 @@ public final class DnsNameResolverBuilder {
         return this;
     }
 
+    private DnsCache newCache() {
+        return new DefaultDnsCache(intValue(minTtl, 0), intValue(maxTtl, Integer.MAX_VALUE), intValue(negativeTtl, 0));
+    }
+
     /**
      * Returns a new {@link DnsNameResolver} instance.
      *
      * @return a {@link DnsNameResolver}
      */
     public DnsNameResolver build() {
-
         if (resolveCache != null && (minTtl != null || maxTtl != null || negativeTtl != null)) {
             throw new IllegalStateException("resolveCache and TTLs are mutually exclusive");
         }
 
-        DnsCache cache = resolveCache != null ? resolveCache :
-                new DefaultDnsCache(intValue(minTtl, 0), intValue(maxTtl, Integer.MAX_VALUE), intValue(negativeTtl, 0));
+        if (nsCache != null && (minTtl != null || maxTtl != null || negativeTtl != null)) {
+            throw new IllegalStateException("nsCache and TTLs are mutually exclusive");
+        }
 
+        DnsCache resolveCache = this.resolveCache != null ? this.resolveCache : newCache();
+        DnsCache nsCache = this.nsCache != null ? this.nsCache : newCache();
         return new DnsNameResolver(
                 eventLoop,
                 channelFactory,
                 nameServerAddresses,
-                cache,
+                resolveCache,
+                nsCache,
                 queryTimeoutMillis,
                 resolvedAddressTypes,
                 recursionDesired,
