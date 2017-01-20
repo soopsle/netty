@@ -28,6 +28,7 @@ import io.netty.handler.codec.dns.DnsRecordType;
 import io.netty.handler.codec.dns.DnsResponse;
 import io.netty.handler.codec.dns.DnsResponseCode;
 import io.netty.handler.codec.dns.DnsSection;
+import io.netty.util.NetUtil;
 import io.netty.util.concurrent.Future;
 import io.netty.util.internal.StringUtil;
 import io.netty.util.internal.logging.InternalLogger;
@@ -491,6 +492,47 @@ public class DnsNameResolverTest {
             InetAddress address = resolver.resolve("10.0.0.1").syncUninterruptibly().getNow();
 
             assertEquals("10.0.0.1", address.getHostAddress());
+        } finally {
+            resolver.close();
+        }
+    }
+
+    @Test
+    public void testResolveEmptyIpv4() {
+        testResolveEmpty(InternetProtocolFamily.IPv4, NetUtil.LOCALHOST4);
+    }
+
+    @Test
+    public void testResolveEmptyIpv6() {
+        testResolveEmpty(InternetProtocolFamily.IPv6, NetUtil.LOCALHOST6);
+    }
+
+    private static void testResolveEmpty(InternetProtocolFamily family, InetAddress expectedAddr) {
+        DnsNameResolver resolver = newResolver(family).build();
+        try {
+            InetAddress address = resolver.resolve("").syncUninterruptibly().getNow();
+            assertEquals(expectedAddr, address);
+        } finally {
+            resolver.close();
+        }
+    }
+
+    @Test
+    public void testResolveAllEmptyIpv4() {
+        testResolveAllEmpty(InternetProtocolFamily.IPv4, NetUtil.LOCALHOST4);
+    }
+
+    @Test
+    public void testResolveAllEmptyIpv6() {
+        testResolveAllEmpty(InternetProtocolFamily.IPv6, NetUtil.LOCALHOST6);
+    }
+
+    private static void testResolveAllEmpty(InternetProtocolFamily family, InetAddress expectedAddr) {
+        DnsNameResolver resolver = newResolver(family).build();
+        try {
+            List<InetAddress> addresses = resolver.resolveAll("").syncUninterruptibly().getNow();
+            assertEquals(1, addresses.size());
+            assertEquals(expectedAddr, addresses.get(0));
         } finally {
             resolver.close();
         }

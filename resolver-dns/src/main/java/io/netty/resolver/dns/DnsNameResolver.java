@@ -492,6 +492,11 @@ public class DnsNameResolver extends InetNameResolver {
         }
     }
 
+    private InetAddress preferedLocalHost() {
+        return preferredAddressType() == InternetProtocolFamily.IPv4 ?
+                    NetUtil.LOCALHOST4 : NetUtil.LOCALHOST6;
+    }
+
     /**
      * Hook designed for extensibility so one can pass a different cache on each resolution attempt
      * instead of using the global one.
@@ -504,6 +509,12 @@ public class DnsNameResolver extends InetNameResolver {
         if (bytes != null) {
             // The inetHost is actually an ipaddress.
             promise.setSuccess(InetAddress.getByAddress(bytes));
+            return;
+        }
+
+        if (inetHost.isEmpty()) {
+            // If an empty hostname is used we should use "localhost", just like InetAddress.getByName(...) does.
+            promise.trySuccess(preferedLocalHost());
             return;
         }
 
@@ -629,6 +640,12 @@ public class DnsNameResolver extends InetNameResolver {
         if (bytes != null) {
             // The unresolvedAddress was created via a String that contains an ipaddress.
             promise.setSuccess(Collections.singletonList(InetAddress.getByAddress(bytes)));
+            return;
+        }
+
+        if (inetHost.isEmpty()) {
+            // If an empty hostname is used we should use "localhost", just like InetAddress.getAllByName(...) does.
+            promise.trySuccess(Collections.singletonList(preferedLocalHost()));
             return;
         }
 
