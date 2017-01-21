@@ -15,11 +15,15 @@
  */
 package io.netty.resolver;
 
+import io.netty.util.NetUtil;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.Promise;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * A skeletal {@link NameResolver} implementation that resolves {@link InetAddress}.
@@ -34,6 +38,31 @@ public abstract class InetNameResolver extends SimpleNameResolver<InetAddress> {
      */
     protected InetNameResolver(EventExecutor executor) {
         super(executor);
+    }
+
+    /**
+     * Returns the {@link InetAddress} for localhost.
+     */
+    protected InetAddress preferedLocalHost() {
+        return NetUtil.LOCALHOST;
+    }
+
+    @Override
+    public Future<InetAddress> resolve(String inetHost, Promise<InetAddress> promise) {
+        if (inetHost == null || inetHost.isEmpty()) {
+            // If an empty hostname is used we should use "localhost", just like InetAddress.getByName(...) does.
+            return promise.setSuccess(preferedLocalHost());
+        }
+        return super.resolve(inetHost, promise);
+    }
+
+    @Override
+    public Future<List<InetAddress>> resolveAll(String inetHost, Promise<List<InetAddress>> promise) {
+        if (inetHost == null || inetHost.isEmpty()) {
+            // If an empty hostname is used we should use "localhost", just like InetAddress.getByName(...) does.
+            return promise.setSuccess(Collections.singletonList(preferedLocalHost()));
+        }
+        return super.resolveAll(inetHost, promise);
     }
 
     /**

@@ -511,10 +511,8 @@ abstract class DnsNameResolverContext<T> {
         }
 
         final InetSocketAddress nextAddr = nameServerAddrs.next();
-        if (parent.isCnameFollowARecords()) {
-            if (!query(hostname, DnsRecordType.A, nextAddr, promise)) {
-                return;
-            }
+        if (parent.isCnameFollowARecords() && !query(hostname, DnsRecordType.A, nextAddr, promise)) {
+            return;
         }
         if (parent.isCnameFollowAAAARecords()) {
             query(hostname, DnsRecordType.AAAA, nextAddr, promise);

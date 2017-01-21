@@ -411,8 +411,11 @@ public class DnsNameResolver extends InetNameResolver {
      */
     public final Future<InetAddress> resolve(String inetHost, Iterable<DnsRecord> additionals,
                                              Promise<InetAddress> promise) {
-        checkNotNull(inetHost, "inetHost");
         checkNotNull(promise, "promise");
+        if (inetHost == null || inetHost.isEmpty()) {
+            // If an empty hostname is used we should use "localhost", just like InetAddress.getByName(...) does.
+            return promise.setSuccess(preferedLocalHost());
+        }
         DnsRecord[] additionalsArray = toArray(additionals, true);
         try {
             doResolve(inetHost, additionalsArray, promise, resolveCache);
@@ -445,8 +448,13 @@ public class DnsNameResolver extends InetNameResolver {
      */
     public final Future<List<InetAddress>> resolveAll(String inetHost, Iterable<DnsRecord> additionals,
                                                 Promise<List<InetAddress>> promise) {
-        checkNotNull(inetHost, "inetHost");
         checkNotNull(promise, "promise");
+
+        if (inetHost == null || inetHost.isEmpty()) {
+            // If an empty hostname is used we should use "localhost", just like InetAddress.getAllByName(...) does.
+            return promise.setSuccess(Collections.singletonList(preferedLocalHost()));
+        }
+
         DnsRecord[] additionalsArray = toArray(additionals, true);
         try {
             doResolveAll(inetHost, additionalsArray, promise, resolveCache);
@@ -492,7 +500,8 @@ public class DnsNameResolver extends InetNameResolver {
         }
     }
 
-    private InetAddress preferedLocalHost() {
+    @Override
+    protected final InetAddress preferedLocalHost() {
         return preferredAddressType() == InternetProtocolFamily.IPv4 ?
                     NetUtil.LOCALHOST4 : NetUtil.LOCALHOST6;
     }
@@ -509,12 +518,6 @@ public class DnsNameResolver extends InetNameResolver {
         if (bytes != null) {
             // The inetHost is actually an ipaddress.
             promise.setSuccess(InetAddress.getByAddress(bytes));
-            return;
-        }
-
-        if (inetHost.isEmpty()) {
-            // If an empty hostname is used we should use "localhost", just like InetAddress.getByName(...) does.
-            promise.trySuccess(preferedLocalHost());
             return;
         }
 
@@ -640,12 +643,6 @@ public class DnsNameResolver extends InetNameResolver {
         if (bytes != null) {
             // The unresolvedAddress was created via a String that contains an ipaddress.
             promise.setSuccess(Collections.singletonList(InetAddress.getByAddress(bytes)));
-            return;
-        }
-
-        if (inetHost.isEmpty()) {
-            // If an empty hostname is used we should use "localhost", just like InetAddress.getAllByName(...) does.
-            promise.trySuccess(Collections.singletonList(preferedLocalHost()));
             return;
         }
 
